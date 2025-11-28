@@ -1,0 +1,178 @@
+type: collection.insomnia.rest/5.0
+name: Fase 4 pós
+meta:
+  id: wrk_71bb1344e3ce4dccbcd713eca36f8a20
+  created: 1764356035570
+  modified: 1764356035570
+collection:
+  - name: Health Check
+    meta:
+      id: fld_fe87e4caff0d45bab8f0d2207200e41f
+      created: 1764358943816
+      modified: 1764358943816
+      sortKey: -1764358943816
+    children:
+      - url: http://localhost:8000/health
+        name: Health
+        meta:
+          id: req_56689e4b18c34c02b0aa14c79e5f06ab
+          created: 1764357463676
+          modified: 1764358950254
+          isPrivate: false
+          sortKey: -1764358946902
+        method: GET
+        headers:
+          - name: User-Agent
+            value: insomnia/11.0.1
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: http://localhost:8000/metrics-summary
+        name: metrics-summary
+        meta:
+          id: req_633ba06e3fe44ba09b8577081e8aeb35
+          created: 1764357499310
+          modified: 1764358949096
+          isPrivate: false
+          sortKey: -1764358946802
+        method: GET
+        headers:
+          - name: User-Agent
+            value: insomnia/11.0.1
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: Retrieve
+    meta:
+      id: fld_360cfbd210ee404597a3460f2d27bbed
+      created: 1764358956403
+      modified: 1764358956403
+      sortKey: -1764358956403
+    children:
+      - url: http://localhost:8000/stocks/AAPL/download
+        name: 1 - Download
+        meta:
+          id: req_b79a304f09684752afbfd65db2857a3e
+          created: 1764358963078
+          modified: 1764359948062
+          isPrivate: false
+          sortKey: -1764358963078
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "start_date": "2018-01-01"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/11.0.1
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: http://localhost:8000/stocks/AAPL/status
+        name: 2 - Status
+        meta:
+          id: req_a71b780e622f4c9d835d4004951fa651
+          created: 1764359047636
+          modified: 1764359957230
+          isPrivate: false
+          sortKey: -1764358954990
+        method: GET
+        body:
+          mimeType: application/json
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/11.0.1
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: http://localhost:8000/stocks/AAPL/train
+        name: 3 - Train
+        meta:
+          id: req_2417d674369a48a99a06c93a7de88436
+          created: 1764359081931
+          modified: 1764359964441
+          isPrivate: false
+          sortKey: -1764358950946
+        method: POST
+        headers:
+          - name: User-Agent
+            value: insomnia/11.0.1
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - url: http://localhost:8000/predict
+    name: Predict
+    meta:
+      id: req_7561951b748f42dfb078da34aef11797
+      created: 1764356040270
+      modified: 1764359829778
+      isPrivate: false
+      sortKey: -1764356040270
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"symbol": "IAU",
+          "last_n_days": 120,
+          "n_days": 3
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/11.0.1
+        id: pair_fb0f88fd356e4f258e7f3f09a31bf316
+        disabled: true
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_8d544a3d2e7d410b344241fa5c512e8f78a70d03
+    created: 1764356035574
+    modified: 1764356035574
+environments:
+  name: Base Environment
+  meta:
+    id: env_8d544a3d2e7d410b344241fa5c512e8f78a70d03
+    created: 1764356035572
+    modified: 1764356035572
+    isPrivate: false
