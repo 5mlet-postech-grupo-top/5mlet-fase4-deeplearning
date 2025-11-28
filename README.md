@@ -76,7 +76,9 @@ Baixa dados desde 2018-01-01 até hoje por padrão.
 
 ### **curl**
 ```bash
-curl -X POST "http://localhost:8000/stocks/AAPL/download"      -H "Content-Type: application/json"      -d '{"start_date": "2018-01-01"}'
+curl -X POST "http://localhost:8000/stocks/AAPL/download"
+              -H "Content-Type: application/json"
+              -d '{"start_date": "2018-01-01"}'
 ```
 
 ### **Resposta**
@@ -142,6 +144,11 @@ curl -X POST "http://localhost:8000/stocks/AAPL/train"
 }
 ```
 
+### **curl**
+```bash
+curl -X POST "http://localhost:8000/stocks/AAPL/status"
+```
+
 ### **Exemplo de status durante o treino**
 ```json
 {
@@ -174,11 +181,13 @@ Só funciona se o modelo estiver treinado.
 
 ### **curl**
 ```bash
-curl -X POST "http://localhost:8000/predict"      -H "Content-Type: application/json"      -d '{
-           "symbol": "AAPL",
-           "last_n_days": 120,
-           "n_days": 3
-         }'
+curl -X POST "http://localhost:8000/predict"
+              -H "Content-Type: application/json"
+              -d '{
+                   "symbol": "AAPL",
+                   "last_n_days": 120,
+                   "n_days": 3
+                 }'
 ```
 
 ### **Resposta**
