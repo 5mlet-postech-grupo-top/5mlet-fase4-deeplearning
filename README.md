@@ -155,7 +155,7 @@ GET `/health`:
 Este endpoint é ideal para ser usado por um load balancer, orquestrador (Kubernetes, ECS, Docker Swarm) ou ferramenta de monitoramento.
 
 
-### 📈 3. Endpoint de Monitoramento — /metrics-summary
+### 📈 Endpoint de Monitoramento — /metrics-summary
 
 GET `/metrics-summary`:
 
@@ -182,18 +182,6 @@ Este endpoint expõe métricas essenciais sobre:
 ```
 
 O endpoint /metrics-summary fornece métricas em tempo real sobre o comportamento da API e a performance do modelo. Ele registra automaticamente tempo de resposta, quantidade de chamadas, falhas, utilização de CPU e consumo de memória. Isso permite que a aplicação seja monitorada tanto manualmente quanto por ferramentas externas como Grafana, CloudWatch ou Prometheus.
-
----
-
-## 📹 O que mostrar no vídeo da entrega
-
-- coleta dos dados  
-- treinamento do modelo  
-- métricas de avaliação  
-- arquivos exportados  
-- API rodando  
-- requisição funcionando  
-- execução via Docker  
 
 ---
 
