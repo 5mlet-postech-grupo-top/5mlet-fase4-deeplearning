@@ -1,212 +1,222 @@
-# 📈 LSTM Stock Price Predictor  
-### Previsão de preços de ações com redes neurais LSTM + FastAPI + Docker
+# 📈 LSTM Stock Price Predictor (Versão Evoluída)
+### Previsão de preços de ações com redes neurais LSTM, FastAPI, Treino Assíncrono e Suporte Multi-Ação
 
-Este projeto implementa uma pipeline completa para previsão de preços de ações utilizando redes neurais **LSTM**, incluindo:
+Esta versão evoluída da solução permite:
 
-- ✔️ Coleta de dados históricos  
-- ✔️ Pré-processamento  
-- ✔️ Treinamento LSTM  
-- ✔️ Avaliação (MAE, RMSE, MAPE)  
-- ✔️ Salvamento do modelo  
-- ✔️ API REST com FastAPI  
-- ✔️ Deploy com Docker  
+- ✔️ Download sob demanda de dados de qualquer ação  
+- ✔️ Treinamento assíncrono por ação (sem timeout)  
+- ✔️ Status completo de dados, modelo e treino  
+- ✔️ Predição condicionada à existência de modelo treinado  
+- ✔️ Janelas dinâmicas via `last_n_days`  
+- ✔️ Monitoramento da API  
+- ✔️ Documentação completa via Swagger  
 
 ---
 
-## 📝 Instalando Dependências
+# 🚀 Fluxo Completo
 
+1. **Baixar dados da ação**  
+2. **Consultar status**  
+3. **Iniciar treino assíncrono**  
+4. **Consultar progresso / métricas do treino**  
+5. **Executar predição**  
+
+---
+
+# 📥 1) Download de Dados da Ação
+
+### **Endpoint**
+`POST /stocks/{symbol}/download`
+
+Baixa dados desde 2018-01-01 até hoje por padrão.
+
+### **curl**
 ```bash
-pip install -r requirements.txt
+curl -X POST "http://localhost:8000/stocks/AAPL/download"      -H "Content-Type: application/json"      -d '{"start_date": "2018-01-01"}'
 ```
 
----
-
-## 📥 Coleta de Dados
-
-Use o script `download_data.py` para baixar dados históricos de ações via **yfinance**.
-
-### Executar:
-
-```bash
-cd src
-python download_data.py
-```
-
-Um arquivo CSV será gerado contendo os dados históricos da ação escolhida.
-
----
-
-## 🤖 Treinamento do Modelo LSTM
-
-Execute o script `train_lstm.py` para:
-
-- converter e limpar dados  
-- criar janelas temporais  
-- treinar a rede LSTM  
-- validar o modelo  
-- calcular métricas  
-- gerar artefatos do modelo  
-
-### Executar:
-
-```bash
-python train_lstm.py
-```
-
-O treinamento irá gerar:
-
-- `lstm_model.h5`  
-- `scaler.pkl`  
-
----
-
-## 📊 Métricas de Avaliação
-
-O modelo é avaliado usando:
-
-- **MAE** – Mean Absolute Error  
-- **RMSE** – Root Mean Square Error  
-- **MAPE** – Mean Absolute Percentage Error  
-
-Exemplo de saída:
-
-```
-MAE: 1.23
-RMSE: 1.74
-MAPE: 1.82%
-```
-
----
-
-## 🌐 API REST com FastAPI
-
-O arquivo `api.py` cria uma API que recebe preços históricos e retorna previsões.
-
-### Executar a API:
-
-```bash
-uvicorn api:app --reload --port 8000
-```
-
-Acesse a documentação interativa em:
-
-👉 http://localhost:8000/docs
-
----
-
-### 🔮 Exemplo de requisição
-
-POST `/predict`:
-
+### **Resposta**
 ```json
 {
-  "prices": [
-  171.52, 172.10, 173.04, 172.88, 173.55, 174.02, 174.44, 173.98, 174.62, 175.10,
-  175.48, 176.02, 175.66, 176.31, 176.89, 177.42, 176.95, 177.60, 178.14, 178.72,
-  179.05, 178.66, 179.20, 179.88, 180.33, 180.92, 181.35, 181.82, 182.40, 181.94,
-  182.55, 182.98, 183.52, 184.00, 184.44, 184.92, 185.30, 185.82, 186.24, 186.70,
-  187.18, 187.66, 188.14, 188.60, 189.02, 189.55, 189.98, 190.40, 190.88, 191.35,
-  191.82, 192.20, 192.72, 193.10, 193.58, 194.05, 194.48, 194.92, 194.48, 194.92
-],
-  "n_days": 3
-}
-```
-
-### Resposta:
-
-```json
-{
-  "predicted_prices": [174.82, 175.13, 175.44]
+  "symbol": "AAPL",
+  "rows": 1580,
+  "data_path": ".../data/AAPL_history.csv"
 }
 ```
 
 ---
 
-## 🐳 Deploy com Docker
+# 🔍 2) Consultar Status da Ação
 
-### Build:
+Mostra:
 
+- se existem dados  
+- se existe modelo treinado  
+- se está pronto para predição  
+- estado do treino (idle / running / success / error)  
+- métricas do último treino  
+
+### **Endpoint**
+`GET /stocks/{symbol}/status`
+
+### **curl**
 ```bash
-docker build -t lstm-api .
+curl "http://localhost:8000/stocks/AAPL/status"
 ```
 
-### Executar:
-
-```bash
-docker run -p 8000:8000 lstm-api
+### **Resposta**
+```json
+{
+  "symbol": "AAPL",
+  "has_data": true,
+  "has_model": false,
+  "ready_for_prediction": false,
+  "training_status": "idle"
+}
 ```
 
 ---
 
-### 🔮 Exemplo de monitoramento de performance
+# 🧠 3) Treinar Modelo da Ação (Assíncrono)
 
-### ❤️ Endpoint de Health Check — /health
+Treina o modelo em background sem bloquear o cliente.
 
-GET `/health`:
+### **Endpoint**
+`POST /stocks/{symbol}/train`
 
-### Resposta:
+### **curl**
+```bash
+curl -X POST "http://localhost:8000/stocks/AAPL/train"
+```
 
+### **Resposta imediata**
 ```json
 {
-  "status": "ok"
+  "symbol": "AAPL",
+  "started": true,
+  "status_url": "http://localhost:8000/stocks/AAPL/status"
 }
 ```
 
-Este endpoint é ideal para ser usado por um load balancer, orquestrador (Kubernetes, ECS, Docker Swarm) ou ferramenta de monitoramento.
+### **Exemplo de status durante o treino**
+```json
+{
+  "symbol": "AAPL",
+  "training_status": "running"
+}
+```
 
+### **Exemplo após o término**
+```json
+{
+  "symbol": "AAPL",
+  "training_status": "success",
+  "training_metrics": {
+    "mae": 1.23,
+    "rmse": 1.74,
+    "mape": 1.82
+  }
+}
+```
 
-### 📈 3. Endpoint de Monitoramento — /metrics-summary
+---
 
-GET `/metrics-summary`:
+# 📊 4) Predição por Ação
 
-Este endpoint expõe métricas essenciais sobre:
-- número total de requisições
-- número de erros
-- tempo médio de resposta
-- maior tempo de resposta registrado
-- uso de CPU (%)
-- uso de memória (MB)
+Só funciona se o modelo estiver treinado.
 
-### Resposta:
+### **Endpoint**
+`POST /predict`
 
+### **curl**
+```bash
+curl -X POST "http://localhost:8000/predict"      -H "Content-Type: application/json"      -d '{
+           "symbol": "AAPL",
+           "last_n_days": 120,
+           "n_days": 3
+         }'
+```
+
+### **Resposta**
+```json
+{
+  "symbol": "AAPL",
+  "predicted_prices": [195.31, 195.82, 196.44]
+}
+```
+
+### ❗ Caso o modelo não exista:
+```json
+{
+  "detail": {
+    "message": "Não existe modelo treinado para AAPL.",
+    "docs": "http://localhost:8000/docs"
+  }
+}
+```
+
+---
+
+# 📉 5) Monitoramento da API
+
+### **Health Check**
+
+`GET /health`
+
+```bash
+curl http://localhost:8000/health
+```
+
+---
+
+### **Resumo de métricas**
+
+`GET /metrics-summary`
+
+```bash
+curl http://localhost:8000/metrics-summary
+```
+
+**Exemplo:**
 ```json
 {
   "total_requests": 57,
   "total_errors": 0,
   "avg_response_time_ms": 14.82,
   "max_response_time_ms": 51.44,
-  "cpu_percent": 8.9,
-  "memory_rss_mb": 142.77
+  "cpu_percent": 9.1,
+  "memory_rss_mb": 143.2
 }
-
 ```
 
-O endpoint /metrics-summary fornece métricas em tempo real sobre o comportamento da API e a performance do modelo. Ele registra automaticamente tempo de resposta, quantidade de chamadas, falhas, utilização de CPU e consumo de memória. Isso permite que a aplicação seja monitorada tanto manualmente quanto por ferramentas externas como Grafana, CloudWatch ou Prometheus.
+---
+
+# 🐳 6) Docker
+
+### Build
+```bash
+docker build -t lstm-api .
+```
+
+### Executar
+```bash
+docker run -p 8000:8000 lstm-api
+```
+
+Swagger:
+👉 http://localhost:8000/docs
 
 ---
 
-## 📹 O que mostrar no vídeo da entrega
+# ✔️ Conclusão
 
-- coleta dos dados  
-- treinamento do modelo  
-- métricas de avaliação  
-- arquivos exportados  
-- API rodando  
-- requisição funcionando  
-- execução via Docker  
+Esta versão do produto entrega:
 
----
+- Download de dados sob demanda  
+- Treino assíncrono seguro  
+- Status avançado por ativo  
+- Predição multi-ação  
+- Monitoramento real  
+- API pronta para produção  
 
-## 🌟 Melhorias Futuras
-
-- uso de indicadores técnicos (RSI, MACD, médias móveis)  
-- re-treino automático periódico  
-- deploy em AWS (ECS, Lambda, Beanstalk)  
-- monitoramento com Prometheus e Grafana  
-- criação de dashboard com Streamlit  
-
----
-
-## ✔️ Conclusão
-
-Este projeto entrega toda a pipeline exigida no Tech Challenge: coleta, modelo LSTM, avaliação, API e Docker — tudo documentado e pronto para uso.
+Ideal para pipelines avançadas e evolução contínua do modelo.
