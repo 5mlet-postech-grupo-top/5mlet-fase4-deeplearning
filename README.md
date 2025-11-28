@@ -13,6 +13,14 @@ Este projeto implementa uma pipeline completa para previsão de preços de açõ
 
 ---
 
+## 📝 Instalando Dependências
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
 ## 📥 Coleta de Dados
 
 Use o script `download_data.py` para baixar dados históricos de ações via **yfinance**.
@@ -130,11 +138,50 @@ docker run -p 8000:8000 lstm-api
 
 ---
 
-## 📝 Instalando Dependências
+### 🔮 Exemplo de monitoramento de performance
 
-```bash
-pip install -r requirements.txt
+### ❤️ Endpoint de Health Check — /health
+
+GET `/health`:
+
+### Resposta:
+
+```json
+{
+  "status": "ok"
+}
 ```
+
+Este endpoint é ideal para ser usado por um load balancer, orquestrador (Kubernetes, ECS, Docker Swarm) ou ferramenta de monitoramento.
+
+
+### 📈 3. Endpoint de Monitoramento — /metrics-summary
+
+GET `/metrics-summary`:
+
+Este endpoint expõe métricas essenciais sobre:
+- número total de requisições
+- número de erros
+- tempo médio de resposta
+- maior tempo de resposta registrado
+- uso de CPU (%)
+- uso de memória (MB)
+
+### Resposta:
+
+```json
+{
+  "total_requests": 57,
+  "total_errors": 0,
+  "avg_response_time_ms": 14.82,
+  "max_response_time_ms": 51.44,
+  "cpu_percent": 8.9,
+  "memory_rss_mb": 142.77
+}
+
+```
+
+O endpoint /metrics-summary fornece métricas em tempo real sobre o comportamento da API e a performance do modelo. Ele registra automaticamente tempo de resposta, quantidade de chamadas, falhas, utilização de CPU e consumo de memória. Isso permite que a aplicação seja monitorada tanto manualmente quanto por ferramentas externas como Grafana, CloudWatch ou Prometheus.
 
 ---
 

@@ -1,5 +1,4 @@
 fastapi
-prometheus-fastapi-instrumentator
 uvicorn[standard]
 yfinance
 pandas
@@ -9,3 +8,4 @@ joblib
 tensorflow
 tensorflow-intel
 keras
+psutil
