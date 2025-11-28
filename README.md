@@ -235,23 +235,6 @@ curl http://localhost:8000/metrics-summary
 
 ---
 
-# 🐳 6) Docker
-
-### Build
-```bash
-docker build -t lstm-api .
-```
-
-### Executar
-```bash
-docker run -p 8000:8000 lstm-api
-```
-
-Swagger:
-👉 http://localhost:8000/docs
-
----
-
 # ✔️ Conclusão
 
 Esta versão do produto entrega:
