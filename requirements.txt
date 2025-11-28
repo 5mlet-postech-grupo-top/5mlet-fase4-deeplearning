@@ -1,0 +1,11 @@
+fastapi
+prometheus-fastapi-instrumentator
+uvicorn[standard]
+yfinance
+pandas
+numpy
+scikit-learn
+joblib
+tensorflow
+tensorflow-intel
+keras
