@@ -23,6 +23,50 @@ Esta versão evoluída da solução permite:
 
 ---
 
+# 🐳 Docker (Opcional)
+
+### Build
+```bash
+docker build -t lstm-api .
+```
+
+### Executar
+```bash
+docker run -p 8000:8000 lstm-api
+```
+
+Swagger:
+👉 http://localhost:8000/docs
+
+Caso não queira fazer o deploy via Docker, siga o passo a passo abaixo, caso contrário, siga para a etapa 1
+
+---
+
+## 📝 Instalando Dependências
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## 🌐 API REST com FastAPI
+
+O arquivo `api.py` cria uma API que recebe preços históricos e retorna previsões.
+
+### Executar a API:
+
+```bash
+cd src
+uvicorn api:app --reload --port 8000
+```
+
+Acesse a documentação interativa em:
+
+👉 http://localhost:8000/docs
+
+---
+
 # 📥 1) Download de Dados da Ação
 
 ### **Endpoint**
