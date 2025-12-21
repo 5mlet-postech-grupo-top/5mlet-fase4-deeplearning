@@ -4,6 +4,7 @@ import time
 import threading
 import math
 from datetime import date, datetime
+import os
 
 import numpy as np
 import pandas as pd
@@ -20,10 +21,17 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import LSTM, Dense, Dropout
 
+from huggingface_hub import HfApi, hf_hub_download
+from huggingface_hub.utils import RepositoryNotFoundError, RevisionNotFoundError
+
+from dotenv import load_dotenv
 
 # ============================
 #   CONSTANTES E DIRETÓRIOS
 # ============================
+
+# Carrega as variáveis do arquivo .env para o ambiente
+load_dotenv()
 
 WINDOW_SIZE = 60
 DATA_DIR = Path("../data")
@@ -31,6 +39,9 @@ MODELS_DIR = Path("../models")
 
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
+
+HF_REPO_ID = os.getenv("HF_REPO_ID", "seu-usuario/nome-do-repo")
+HF_TOKEN = os.getenv("HF_TOKEN") # O Token será injetado pelo Render
 
 app = FastAPI(title="LSTM Stock Predictor API - Multi-Assets")
 
@@ -112,6 +123,69 @@ def mape(y_true, y_pred):
     return np.mean(np.abs((y_true - y_pred) / y_true)) * 100
 
 
+def upload_model_to_hf(symbol: str):
+    """Sobe o modelo (.h5) e o scaler (.pkl) para o Hugging Face"""
+    if not HF_TOKEN:
+        print("HF_TOKEN não configurado. Upload pulado.")
+        return
+
+    sym = normalize_symbol(symbol)
+    model_path, scaler_path = get_model_paths(sym)
+
+    api = HfApi(token=HF_TOKEN)
+
+    # Upload do Modelo
+    if model_path.exists():
+        print(f"Subindo modelo de {sym} para o Hugging Face...")
+        api.upload_file(
+            path_or_fileobj=model_path,
+            path_in_repo=f"models/{sym}_lstm_model.h5",
+            repo_id=HF_REPO_ID,
+            repo_type="model"
+        )
+
+    # Upload do Scaler
+    if scaler_path.exists():
+        print(f"Subindo scaler de {sym} para o Hugging Face...")
+        api.upload_file(
+            path_or_fileobj=scaler_path,
+            path_in_repo=f"models/{sym}_scaler.pkl",
+            repo_id=HF_REPO_ID,
+            repo_type="model"
+        )
+
+
+def download_model_from_hf(symbol: str):
+    """Tenta baixar o modelo e o scaler do Hugging Face se não existirem localmente"""
+    sym = normalize_symbol(symbol)
+    model_path, scaler_path = get_model_paths(sym)
+
+    # Se já temos os arquivos, não faz nada
+    if model_path.exists() and scaler_path.exists():
+        return True
+
+    print(f"Arquivos locais de {sym} ausentes. Tentando baixar do Hugging Face...")
+
+    try:
+        # Baixa Modelo
+        hf_hub_download(
+            repo_id=HF_REPO_ID,
+            filename=f"models/{sym}_lstm_model.h5",
+            local_dir=BASE_DIR,  # Salva na estrutura de pastas correta
+            token=HF_TOKEN
+        )
+        # Baixa Scaler
+        hf_hub_download(
+            repo_id=HF_REPO_ID,
+            filename=f"models/{sym}_scaler.pkl",
+            local_dir=BASE_DIR,
+            token=HF_TOKEN
+        )
+        return True
+    except (RepositoryNotFoundError, RevisionNotFoundError, Exception) as e:
+        print(f"Não foi possível baixar modelo de {sym} do HF: {e}")
+        return False
+
 # ============================
 #   CACHE DE MODELOS
 # ============================
@@ -126,10 +200,13 @@ def load_model_for_symbol(symbol: str):
         if sym in model_cache:
             return model_cache[sym]
 
+        # Tenta garantir que os arquivos existam (Local ou Baixando do HF)
+        download_model_from_hf(sym)
+
         model_path, scaler_path = get_model_paths(sym)
 
         if not model_path.exists() or not scaler_path.exists():
-            raise FileNotFoundError(f"Modelo ou scaler não encontrado para {sym}")
+            raise FileNotFoundError(f"Modelo ou scaler não encontrado para {sym} (nem local, nem no HF)")
 
         model = load_model(model_path)
         scaler = joblib.load(scaler_path)
@@ -216,6 +293,11 @@ def _train_symbol_model_task(sym: str):
         model_path, scaler_path = get_model_paths(sym)
         model.save(model_path)
         joblib.dump(scaler, scaler_path)
+
+        try:
+            upload_model_to_hf(sym)
+        except Exception as e:
+            print(f"Erro ao subir para o Hugging Face: {e}")
 
         with model_cache_lock:
             if sym in model_cache:

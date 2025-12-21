@@ -1,11 +1,13 @@
 fastapi
-uvicorn[standard]
+uvicorn
 yfinance
 pandas
 numpy
 scikit-learn
 joblib
 tensorflow
-tensorflow-intel
+tensorflow-cpu
 keras
 psutil
+huggingface_hub
+python-dotenv

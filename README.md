@@ -1,258 +1,183 @@
-# 📈 LSTM Stock Price Predictor (Versão Evoluída)
-### Previsão de preços de ações com redes neurais LSTM, FastAPI, Treino Assíncrono e Suporte Multi-Ação
+# 📈 LSTM Stock Price Predictor (MLOps & Cloud Ready)
 
-Esta versão evoluída da solução permite:
+### Previsão de preços de ações com redes neurais LSTM, FastAPI, Treino Assíncrono e Persistência no Hugging Face.
 
-- ✔️ Download sob demanda de dados de qualquer ação  
-- ✔️ Treinamento assíncrono por ação (sem timeout)  
-- ✔️ Status completo de dados, modelo e treino  
-- ✔️ Predição condicionada à existência de modelo treinado  
-- ✔️ Janelas dinâmicas via `last_n_days`  
-- ✔️ Monitoramento da API  
-- ✔️ Documentação completa via Swagger  
+Esta é a versão final do Tech Challenge (Fase 4). A solução foi evoluída para suportar ambientes de nuvem efêmeros (como o Render), utilizando o Hugging Face como repositório de modelos.
 
----
+### 🌟 Novas Funcionalidades:
 
-# 🚀 Fluxo Completo
-
-1. **Baixar dados da ação**  
-2. **Consultar status**  
-3. **Iniciar treino assíncrono**  
-4. **Consultar progresso / métricas do treino**  
-5. **Executar predição**  
+* ✔️ **MLOps:** Integração nativa com **Hugging Face Hub**.
+* ✔️ **Persistência em Nuvem:** Modelos treinados são enviados automaticamente para a nuvem.
+* ✔️ **Auto-Recovery:** Se o container reiniciar, a API baixa o modelo automaticamente antes de predizer.
+* ✔️ **Docker Otimizado:** Configurado para produção (Render/K8s).
+* ✔️ **Treino Assíncrono:** Não bloqueia a API durante o treinamento.
 
 ---
 
-# 🐳 Docker (Opcional)
+# 🚀 Fluxo de MLOps
 
-### Build
+1. **Download:** Usuário solicita download dos dados (salvos temporariamente).
+2. **Treino:** API treina o modelo LSTM em background.
+3. **Upload (Auto):** Ao finalizar, a API envia o modelo (`.h5`) e o scaler (`.pkl`) para o seu repositório no Hugging Face.
+4. **Deploy/Reinício:** O servidor pode ser desligado ou reiniciado (dados locais são perdidos).
+5. **Predição (Auto-Restore):** Ao solicitar uma previsão, se o modelo não estiver no disco, a API **baixa automaticamente do Hugging Face** e executa a inferência.
+
+---
+
+# ⚙️ Configuração Prévia (Obrigatório)
+
+Para que a persistência funcione, você precisa de um token do Hugging Face.
+
+1. Crie uma conta em [huggingface.co](https://huggingface.co/).
+2. Crie um **Model Repository** (ex: `seu-usuario/tech-challenge-fase4`).
+3. Gere um **Access Token** com permissão de `WRITE` (Settings > Access Tokens).
+
+Defina as variáveis de ambiente no seu sistema ou no arquivo `.env` (se usar):
+
+* `HF_TOKEN`: Seu token de escrita.
+* `HF_REPO_ID`: O ID do repositório (ex: `joao/stock-lstm`).
+
+---
+
+# 🐳 Docker
+
+O Dockerfile foi ajustado para rodar na estrutura de pastas `src/` e aceitar a porta dinâmica do Render.
+
+### 1. Build da Imagem
+
 ```bash
 docker build -t lstm-api .
+
 ```
 
-### Executar
+### 2. Rodar o Container
+
+Você **deve** passar as variáveis de ambiente para que o upload/download funcione:
+
 ```bash
-docker run -p 8000:8000 lstm-api
+docker run -p 8000:8000 \
+  -e HF_TOKEN="seu_token_aqui" \
+  -e HF_REPO_ID="seu-usuario/nome-do-repo" \
+  lstm-api
+
 ```
 
-Swagger:
-👉 http://localhost:8000/docs
-
-Caso não queira fazer o deploy via Docker, siga o passo a passo abaixo, caso contrário, siga para a etapa 1
+Swagger disponível em: 👉 http://localhost:8000/docs
 
 ---
 
-## 📝 Instalando Dependências
+# 💻 Rodando Localmente (Sem Docker)
+
+### 1. Instalar Dependências
+
+Recomendado usar Python 3.10 ou 3.11.
 
 ```bash
 pip install -r requirements.txt
+
 ```
 
----
+### 2. Configurar Variáveis (Linux/Mac)
 
-## 🌐 API REST com FastAPI
+```bash
+export HF_TOKEN="seu_token_aqui"
+export HF_REPO_ID="seu-usuario/nome-do-repo"
 
-O arquivo `api.py` cria uma API que recebe preços históricos e retorna previsões.
+```
 
-### Executar a API:
+*(No Windows Powershell use: `$env:HF_TOKEN=".."`)*
+
+### 3. Executar a API
+
+Entre na pasta `src` e inicie o servidor:
 
 ```bash
 cd src
 uvicorn api:app --reload --port 8000
+
 ```
 
-Acesse a documentação interativa em:
-
-👉 http://localhost:8000/docs
+Acesse: 👉 http://localhost:8000/docs
 
 ---
 
-# 📥 1) Download de Dados da Ação
+# 📡 Endpoints Principais
 
-### **Endpoint**
+## 1️⃣ Download de Dados
+
+Baixa dados do Yahoo Finance para o disco temporário.
+
 `POST /stocks/{symbol}/download`
 
-Baixa dados desde 2018-01-01 até hoje por padrão.
-
-### **curl**
 ```bash
-curl -X POST "http://localhost:8000/stocks/AAPL/download"
-              -H "Content-Type: application/json"
-              -d '{"start_date": "2018-01-01"}'
+curl -X POST "http://localhost:8000/stocks/AAPL/download" \
+     -H "Content-Type: application/json" \
+     -d '{"start_date": "2018-01-01"}'
+
 ```
 
-### **Resposta**
-```json
-{
-  "symbol": "AAPL",
-  "rows": 1580,
-  "data_path": ".../data/AAPL_history.csv"
-}
-```
+## 2️⃣ Treinar Modelo (Com Upload Automático)
 
----
+Inicia o treino e, ao final, faz o upload para o Hugging Face.
 
-# 🔍 2) Consultar Status da Ação
-
-Mostra:
-
-- se existem dados  
-- se existe modelo treinado  
-- se está pronto para predição  
-- estado do treino (idle / running / success / error)  
-- métricas do último treino  
-
-### **Endpoint**
-`GET /stocks/{symbol}/status`
-
-### **curl**
-```bash
-curl "http://localhost:8000/stocks/AAPL/status"
-```
-
-### **Resposta**
-```json
-{
-  "symbol": "AAPL",
-  "has_data": true,
-  "has_model": false,
-  "ready_for_prediction": false,
-  "training_status": "idle"
-}
-```
-
----
-
-# 🧠 3) Treinar Modelo da Ação (Assíncrono)
-
-Treina o modelo em background sem bloquear o cliente.
-
-### **Endpoint**
 `POST /stocks/{symbol}/train`
 
-### **curl**
 ```bash
 curl -X POST "http://localhost:8000/stocks/AAPL/train"
+
 ```
 
-### **Resposta imediata**
-```json
-{
-  "symbol": "AAPL",
-  "started": true,
-  "status_url": "http://localhost:8000/stocks/AAPL/status"
-}
-```
+## 3️⃣ Consultar Status
 
-### **curl**
-```bash
-curl -X POST "http://localhost:8000/stocks/AAPL/status"
-```
+Verifica se o modelo está pronto (localmente).
 
-### **Exemplo de status durante o treino**
-```json
-{
-  "symbol": "AAPL",
-  "training_status": "running"
-}
-```
+`GET /stocks/{symbol}/status`
 
-### **Exemplo após o término**
-```json
-{
-  "symbol": "AAPL",
-  "training_status": "success",
-  "training_metrics": {
-    "mae": 1.23,
-    "rmse": 1.74,
-    "mape": 1.82
-  }
-}
-```
+## 4️⃣ Predição (Com Download Automático)
 
----
+Se o modelo não estiver na máquina, a API busca no Hugging Face.
 
-# 📊 4) Predição por Ação
-
-Só funciona se o modelo estiver treinado.
-
-### **Endpoint**
 `POST /predict`
 
-### **curl**
 ```bash
-curl -X POST "http://localhost:8000/predict"
-              -H "Content-Type: application/json"
-              -d '{
-                   "symbol": "AAPL",
-                   "last_n_days": 120,
-                   "n_days": 3
-                 }'
-```
+curl -X POST "http://localhost:8000/predict" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "symbol": "AAPL",
+           "last_n_days": 60,
+           "n_days": 5
+         }'
 
-### **Resposta**
-```json
-{
-  "symbol": "AAPL",
-  "predicted_prices": [195.31, 195.82, 196.44]
-}
-```
-
-### ❗ Caso o modelo não exista:
-```json
-{
-  "detail": {
-    "message": "Não existe modelo treinado para AAPL.",
-    "docs": "http://localhost:8000/docs"
-  }
-}
 ```
 
 ---
 
-# 📉 5) Monitoramento da API
+# ☁️ Deploy no Render
 
-### **Health Check**
+1. Crie um **Web Service** no Render conectado ao seu Git.
+2. Runtime: **Docker**.
+3. Adicione as **Environment Variables** no painel do Render:
+* `HF_TOKEN`: (Seu token)
+* `HF_REPO_ID`: (Seu repo)
+
+
+4. O Render injetará automaticamente a variável `PORT`.
+
+---
+
+# 📊 Monitoramento
+
+### Health Check
 
 `GET /health`
 
-```bash
-curl http://localhost:8000/health
-```
-
----
-
-### **Resumo de métricas**
+### Métricas de Uso
 
 `GET /metrics-summary`
-
-```bash
-curl http://localhost:8000/metrics-summary
-```
-
-**Exemplo:**
-```json
-{
-  "total_requests": 57,
-  "total_errors": 0,
-  "avg_response_time_ms": 14.82,
-  "max_response_time_ms": 51.44,
-  "cpu_percent": 9.1,
-  "memory_rss_mb": 143.2
-}
-```
+Retorna uso de CPU, Memória e tempos de resposta da API.
 
 ---
 
 # ✔️ Conclusão
 
-Esta versão do produto entrega:
-
-- Download de dados sob demanda  
-- Treino assíncrono seguro  
-- Status avançado por ativo  
-- Predição multi-ação  
-- Monitoramento real  
-- API pronta para produção  
-
-Ideal para pipelines avançadas e evolução contínua do modelo.
+Esta arquitetura resolve o problema de **"Cold Start"** e **Sistemas de Arquivos Efêmeros** em containers serverless. O modelo treinado hoje estará disponível amanhã, mesmo que o servidor seja destruído e recriado, garantindo uma pipeline de MLOps robusta.
