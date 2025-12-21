@@ -132,6 +132,7 @@ curl -X POST "http://localhost:8000/stocks/AAPL/train"
 Verifica se o modelo está pronto (localmente).
 
 `GET /stocks/{symbol}/status`
+### 📈 Endpoint de Monitoramento — /metrics-summary
 
 ## 4️⃣ Predição (Com Download Automático)
 
