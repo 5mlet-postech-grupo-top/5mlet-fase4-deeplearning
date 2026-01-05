@@ -10,7 +10,7 @@ import pandas as pd
 import joblib
 import yfinance as yf
 
-from fastapi import FastAPI, HTTPException, Request, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Request, BackgroundTasks, Response
 from pydantic import BaseModel
 
 from sklearn.preprocessing import MinMaxScaler
@@ -251,10 +251,30 @@ try:
 except ImportError:
     psutil = None
 
+try:
+    from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
+    prometheus_available = True
+except Exception:
+    prometheus_available = False
+
+# Prometheus metrics (optional)
+if prometheus_available:
+    REQUEST_COUNT = Counter('http_requests_total', 'Total HTTP requests', ['method', 'endpoint', 'http_status'])
+    REQUEST_LATENCY = Histogram('http_request_latency_seconds', 'HTTP request latency seconds', ['method', 'endpoint'])
+    ERROR_COUNT = Counter('http_request_errors_total', 'Total HTTP request errors', ['method', 'endpoint'])
+    PROCESS_CPU = Gauge('process_cpu_percent', 'Process CPU percent')
+    PROCESS_MEMORY_RSS = Gauge('process_memory_rss_bytes', 'Process memory RSS in bytes')
+
 
 @app.middleware("http")
 async def add_monitoring(request: Request, call_next):
     start = time.perf_counter()
+    method = request.method
+    endpoint = request.url.path
+
+    # use histogram timer if available
+    if prometheus_available:
+        timer = REQUEST_LATENCY.labels(method=method, endpoint=endpoint).time()
 
     try:
         response = await call_next(request)
@@ -263,7 +283,8 @@ async def add_monitoring(request: Request, call_next):
         success = False
         raise
     finally:
-        elapsed_ms = (time.perf_counter() - start) * 1000.0
+        elapsed_s = (time.perf_counter() - start)
+        elapsed_ms = elapsed_s * 1000.0
 
         with metrics_lock:
             metrics["total_requests"] += 1
@@ -273,6 +294,22 @@ async def add_monitoring(request: Request, call_next):
             metrics["max_response_time_ms"] = max(metrics["max_response_time_ms"], elapsed_ms)
             if not success:
                 metrics["total_errors"] += 1
+
+        if prometheus_available:
+            REQUEST_COUNT.labels(method=method, endpoint=endpoint, http_status=str(response.status_code)).inc()
+            if not success:
+                ERROR_COUNT.labels(method=method, endpoint=endpoint).inc()
+            # update process gauges
+            if psutil:
+                PROCESS_CPU.set(psutil.cpu_percent(interval=0.0))
+                p = psutil.Process()
+                PROCESS_MEMORY_RSS.set(p.memory_info().rss)
+
+            # stop the timer
+            try:
+                timer.__exit__(None, None, None)
+            except Exception:
+                pass
 
     return response
 
@@ -294,6 +331,14 @@ def metrics_summary():
         data["cpu_percent"] = psutil.cpu_percent(interval=0.0)
         data["memory_rss_mb"] = p.memory_info().rss / (1024 * 1024)
     return data
+
+
+@app.get("/metrics")
+def prometheus_metrics():
+    if not prometheus_available:
+        raise HTTPException(503, "Prometheus client not installed")
+    content = generate_latest()
+    return Response(content=content, media_type=CONTENT_TYPE_LATEST)
 
 
 @app.post("/stocks/{symbol}/download")

@@ -9,3 +9,4 @@ tensorflow
 tensorflow-intel
 keras
 psutil
+prometheus-client
