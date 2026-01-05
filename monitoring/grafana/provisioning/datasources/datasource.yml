@@ -3,6 +3,10 @@ datasources:
   - name: Prometheus
     type: prometheus
     access: proxy
-    url: http://prometheus:9090
+    # use environment variable so the URL can be overridden when running locally
+    # example values:
+    #  - http://prometheus:9090          (when running with docker-compose)
+    #  - http://host.docker.internal:9090 (when Grafana runs on host and Prometheus on Docker Desktop)
+    url: ${PROMETHEUS_URL}
     isDefault: true
     editable: false
