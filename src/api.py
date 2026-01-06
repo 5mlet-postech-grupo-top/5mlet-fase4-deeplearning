@@ -272,7 +272,6 @@ async def add_monitoring(request: Request, call_next):
     method = request.method
     endpoint = request.url.path
 
-    # use histogram timer if available
     if prometheus_available:
         timer = REQUEST_LATENCY.labels(method=method, endpoint=endpoint).time()
 
@@ -299,13 +298,11 @@ async def add_monitoring(request: Request, call_next):
             REQUEST_COUNT.labels(method=method, endpoint=endpoint, http_status=str(response.status_code)).inc()
             if not success:
                 ERROR_COUNT.labels(method=method, endpoint=endpoint).inc()
-            # update process gauges
             if psutil:
                 PROCESS_CPU.set(psutil.cpu_percent(interval=0.0))
                 p = psutil.Process()
                 PROCESS_MEMORY_RSS.set(p.memory_info().rss)
 
-            # stop the timer
             try:
                 timer.__exit__(None, None, None)
             except Exception:

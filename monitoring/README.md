@@ -54,7 +54,6 @@ Se você executar o Grafana localmente (não via Docker), defina a variável de 
 
 ```bash
 export PROMETHEUS_URL=http://localhost:9090
-# iniciar grafana (depende de como você instala/roda o grafana localmente)
 ```
 
 - Se o Prometheus estiver remoto (produção), use:
@@ -103,9 +102,4 @@ docker-compose up -d
 Observações para ambiente de produção (Render):
 - O Prometheus configurado em `prometheus.yml` faz scrape direto no domínio `https://fivemlet-fase4-deeplearning.onrender.com/metrics`.
 - Garanta que o endpoint `/metrics` esteja acessível publicamente pelo Prometheus (sem autenticação) ou proteja via rede e use autenticação mútua conforme necessário.
-
-Próximos passos recomendados:
-- Ajustar retenção e armazenamento do Prometheus para produção (filas, PVCs, Thanos/Cortex, etc.).
-- Proteger endpoints e considerar autenticação/ACL para acesso a métricas sensíveis.
-- Usar deploy via Kubernetes (adicionar manifests em `k8s/`) se preferir integrar ao cluster.
 

@@ -38,6 +38,24 @@ docker run -p 8000:8000 lstm-api
 Swagger:
 👉 http://localhost:8000/docs
 
+---
+
+## 🛠️ Deploy / Monitoramento (Produção)
+
+Para deploy automático em produção, defina a variável de ambiente `PROMETHEUS_URL` apontando para o endpoint público do Prometheus (ex.: `https://fivemlet-fase4-deeplearning.onrender.com`). O `docker-compose.yml` usa uma variável de ambiente com fallback local, portanto você pode sobrescrever em tempo de deploy:
+
+```bash
+# Linux / macOS
+export PROMETHEUS_URL="https://fivemlet-fase4-deeplearning.onrender.com"
+docker-compose -f monitoring/docker-compose.yml up -d
+
+# Windows PowerShell
+$env:PROMETHEUS_URL = 'https://fivemlet-fase4-deeplearning.onrender.com'
+docker-compose -f monitoring/docker-compose.yml up -d
+```
+
+Se `PROMETHEUS_URL` não for definido, o compose usará o endpoint interno `http://prometheus:9090` (útil para desenvolvimento local).
+
 Caso não queira fazer o deploy via Docker, siga o passo a passo abaixo, caso contrário, siga para a etapa 1
 
 ---

@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 """
-Simple load generator for the LSTM API to produce traffic for Prometheus/Grafana.
-Usage:
+Generador de produção de trafego para LSTM API para refletir logs no Prometheus/Grafana.
+Use:
   python generate_load.py --host http://localhost:8000 --concurrency 50 --duration 60
-
-This script issues a mix of GET and POST requests against common endpoints to produce
-successful and error responses for metrics testing.
 """
 import argparse
 import random
@@ -18,13 +15,10 @@ import requests
 DEFAULT_ENDPOINTS = [
     ("GET", "/health"),
     ("GET", "/metrics"),
-    # a POST to /predict may produce 4xx/5xx depending on model/data state — useful for errors
     ("POST", "/predict"),
-    # invalid endpoint to generate errors
     ("GET", "/not-found-endpoint")
 ]
 
-# default symbols to include in download/train tests
 DEFAULT_SYMBOLS = [
     "AAPL",
     "KLBN4.SA",
@@ -52,7 +46,6 @@ def worker(host: str, duration: int, sleep_interval: float):
             if method == "GET":
                 r = session.get(url, timeout=5)
             else:
-                # simple body for predict; many responses might be 4xx if no data/model
                 r = session.post(url, json={"symbol": "AAPL", "last_n_days": 60, "n_days": 1}, timeout=10)
 
             with stats_lock:
@@ -76,13 +69,11 @@ def main():
     p.add_argument("--symbols", type=str, default="", help="Comma-separated list of symbols to include (overrides default list)")
     args = p.parse_args()
 
-    # parse symbols (comma separated) or use default
     if args.symbols:
         symbols = [s.strip() for s in args.symbols.split(",") if s.strip()]
     else:
         symbols = DEFAULT_SYMBOLS
 
-    # compute per-thread sleep to achieve approx desired rate
     if args.concurrency <= 0:
         args.concurrency = 1
 
@@ -91,23 +82,18 @@ def main():
 
     print(f"Starting load: host={args.host} concurrency={args.concurrency} duration={args.duration}s target_rps={args.rate} per_endpoint={args.per_endpoint}")
 
-    # If per-endpoint count is requested, build a job queue and run workers that
-    # consume items until the queue is empty. This sends exactly N requests per endpoint.
     if args.per_endpoint and args.per_endpoint > 0:
         q = queue.Queue()
-        # base endpoints (exclude any /stocks/* entries to avoid static AAPL duplication)
         base_endpoints = []
         for method, path in DEFAULT_ENDPOINTS:
             if path.startswith("/stocks/"):
                 continue
             base_endpoints.append((method, path))
 
-        # enqueue non-symbol endpoints
         for method, path in base_endpoints:
             for _ in range(args.per_endpoint):
                 q.put((method, path, None))
 
-        # add per-symbol endpoints: predict (body), download, train, status
         for sym in symbols:
             for _ in range(args.per_endpoint):
                 q.put(("POST", "/predict", sym))
@@ -126,11 +112,9 @@ def main():
                     break
                 url = host.rstrip("/") + path
                 try:
-                    # handle GET
                     if method == "GET":
                         r = session.get(url, timeout=10)
                     else:
-                        # method is POST; use symbol-aware payloads
                         if path == "/predict":
                             payload = {"symbol": (sym or "AAPL"), "last_n_days": 60, "n_days": 1}
                             r = session.post(url, json=payload, timeout=20)
@@ -138,7 +122,6 @@ def main():
                             payload = {"start_date": "2018-01-01"}
                             r = session.post(url, json=payload, timeout=60)
                         else:
-                            # train or other POSTs
                             r = session.post(url, timeout=20)
 
                     with stats_lock:
@@ -156,7 +139,6 @@ def main():
             for _ in range(args.concurrency):
                 ex.submit(worker_queue, args.host, q)
 
-            # wait until queue is processed
             try:
                 q.join()
             except KeyboardInterrupt:
@@ -170,7 +152,6 @@ def main():
             for _ in range(args.concurrency):
                 futures.append(ex.submit(worker, args.host, args.duration, sleep_interval))
 
-            # progress reporting
             start = time.time()
             try:
                 while time.time() - start < args.duration:

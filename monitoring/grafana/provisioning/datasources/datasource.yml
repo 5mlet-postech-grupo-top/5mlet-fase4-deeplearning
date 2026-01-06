@@ -3,11 +3,6 @@ datasources:
   - name: Prometheus
     type: prometheus
     access: proxy
-    # URL taken from environment variable PROMETHEUS_URL so it can work
-    # both in docker-compose and when Grafana runs on the host.
-    # Examples:
-    #  - docker-compose: PROMETHEUS_URL=http://prometheus:9090
-    #  - host Grafana: PROMETHEUS_URL=http://localhost:9090
     url: ${PROMETHEUS_URL}
     isDefault: true
     editable: false
