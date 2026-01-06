@@ -9,5 +9,7 @@ tensorflow
 tensorflow-cpu
 keras
 psutil
+prometheus-client
+requests
 huggingface_hub
 python-dotenv
