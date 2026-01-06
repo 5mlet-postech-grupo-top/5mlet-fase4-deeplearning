@@ -1,0 +1,14 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'app_local'
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      # scrape both an app running on the host and an app running as a container in this compose
+      - targets: ['host.docker.internal:8000', 'app:8000']
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
