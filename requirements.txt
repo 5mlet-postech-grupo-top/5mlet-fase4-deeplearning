@@ -10,3 +10,4 @@ tensorflow-intel
 keras
 psutil
 prometheus-client
+requests
