@@ -1,0 +1,48 @@
+services:
+  # ==========================================
+  # 1. API (Sua Aplicação Principal)
+  # ==========================================
+  - type: web
+    name: fivemlet-api
+    runtime: docker
+    dockerFilePath: ./dockerfile
+    plan: free
+    envVars:
+      - key: HF_TOKEN
+        sync: false
+      - key: HF_REPO_ID
+        value: seu-usuario/seu-modelo
+
+  # ==========================================
+  # 2. Prometheus (Coletor de Métricas)
+  # ==========================================
+  - type: pserv
+    name: prometheus-server
+    runtime: docker
+    rootDir: monitoring/prometheus
+    disk:
+      name: prometheus-disk
+      mountPath: /prometheus
+      sizeGB: 10
+    envVars:
+      - key: PORT
+        value: 9090
+
+  # ==========================================
+  # 3. Grafana (Dashboard Visual)
+  # ==========================================
+  - type: web
+    name: grafana-server
+    runtime: docker
+    rootDir: monitoring/grafana
+    disk:
+      name: grafana-disk
+      mountPath: /var/lib/grafana
+      sizeGB: 10
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: GF_SECURITY_ADMIN_PASSWORD
+        generateValue: true
+      - key: PROMETHEUS_URL
+        value: http://prometheus-server:9090
