@@ -5,7 +5,7 @@ services:
   - type: web
     name: fivemlet-api
     runtime: docker
-    dockerFilePath: ./dockerfile
+    dockerfilePath: ./Dockerfile
     plan: free
     envVars:
       - key: HF_TOKEN
