@@ -5,7 +5,7 @@ services:
   - type: web
     name: fivemlet-api
     runtime: docker
-    dockerFilePath: ./dockerfile # Verifique se o nome do arquivo é exatamente "dockerfile" (minúsculo) ou "Dockerfile"
+    dockerfilePath: ./Dockerfile # Verifique se o nome do arquivo é exatamente "dockerfile" (minúsculo) ou "Dockerfile"
     plan: free
     envVars:
       - key: HF_TOKEN
